@@ -1,0 +1,1 @@
+Goal: a command-line utility that will slurp in an Elm program (using Elm-Ast) and spit out a Reason program, minimizing any hand-editing required after the translation.
