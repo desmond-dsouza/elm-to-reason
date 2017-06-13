@@ -7,28 +7,30 @@ import Expect exposing (..)
 import String
 import Test exposing (describe, test, Test)
 import String.Extra
-
 import Reason exposing (..)
-
-strip : Test
-strip =
-    test "strips all whitespace" <|
-        \() -> String.Extra.clean "  a\t\nb  c" |> Expect.equal "a b c"
 
 
 becomes : String -> String -> Expectation
 becomes reasonString elmString =
     case parseExpression operators (String.trim elmString) of
         Ok ( _, _, ast ) ->
-            let stringClean = case ast of
-                Character _ -> identity
-                String _ -> identity
-                _ -> String.Extra.clean 
+            let
+                stringClean =
+                    case ast of
+                        Character _ ->
+                            identity
+
+                        String _ ->
+                            identity
+
+                        _ ->
+                            String.Extra.clean
             in
-                Expect.equal reasonString (ast |> expToReason |> stringClean) 
+                Expect.equal reasonString (ast |> expToReason |> stringClean)
 
         Err ( _, { position }, es ) ->
             Expect.fail ("failed to parse: " ++ elmString ++ " at position " ++ toString position ++ " with errors: " ++ toString es)
+
 
 
 -- fails : String -> Expectation
@@ -36,7 +38,6 @@ becomes reasonString elmString =
 --     case parseExpression operators s of
 --         Err _ ->
 --             Expect.pass
-
 --         _ ->
 --             Expect.fail (s ++ " expected to fail")
 
@@ -92,6 +93,7 @@ stringLiterals =
             \() -> "\"\\\\\"" |> becomes "\"\\\\\""
         ]
 
+
 letExpressions : Test
 letExpressions =
     describe "Let"
@@ -99,6 +101,10 @@ letExpressions =
             \() ->
                 "let a = 42 in a"
                     |> becomes "{ let a = 42 ; a }"
+        , test "bind to dotted" <|
+            \() ->
+                "let x = A.B.c + 42 in x"
+                    |> becomes "{ let x = A . B . c + 42 ; x }"
         , test "bind to _" <|
             \() ->
                 "let _ = 42 in 24"
@@ -106,34 +112,33 @@ letExpressions =
         , test "function1" <|
             \() ->
                 """
-let
-  f x = x + 1
-in
-  f 4
-        """
+                    let
+                    f x = x + 1
+                    in
+                    f 4
+                            """
                     |> becomes "{ let f x => x + 1 ; f 4 }"
         , test "function2" <|
             \() ->
                 """
-let
-  f x = x + 1
-  g x = x + 1
-in
-  f 4
-        """
+                    let
+                    f x = x + 1
+                    g x = x + 1
+                    in
+                    f 4
+                            """
                     |> becomes "{ let f x => x + 1 ; g x => x + 1 ; f 4 }"
         , test "multiple bindings" <|
             \() ->
                 """
-let
-  a = 42
+                    let
+                    a = 42
 
-  b = a + 1
-in
-  b
-            """
+                    b = a + 1
+                    in
+                    b
+                                """
                     |> becomes "{ let a = 42 ; b = a + 1 ; b }"
-
         ]
 
 
@@ -143,22 +148,21 @@ caseExpressions =
         [ test "simple statement" <|
             \() ->
                 """
-case x of
-  Nothing ->
-    0
+                    case x of
+                    Nothing ->
+                        0
 
-  Just y ->
-    y
-          """
+                    Just y ->
+                        y
+                            """
                     |> becomes "switch x { | Nothing => 0 | Just y => y }"
-
         , test "binding to underscore" <|
             \() ->
                 """
-case x of
-  _ ->
-    42
-          """
+                    case x of
+                    _ ->
+                        42
+                            """
                     |> becomes "switch x { | _ => 42 }"
         ]
 
@@ -178,7 +182,6 @@ application =
             \() ->
                 "(f a) b"
                     |> becomes "f a b"
-
         , test "multiline application" <|
             \() ->
                 "f\n a\n b"
@@ -187,7 +190,6 @@ application =
             \() ->
                 "f\n (==)"
                     |> becomes "f ( == )"
-
         , test "same multiline bug" <|
             \() ->
                 "f\n \"I like the symbol =\""
@@ -261,6 +263,7 @@ record =
                     |> becomes "{ a : a , b : b }"
         ]
 
+
 ifElse : Test
 ifElse =
     describe "ifElse"
@@ -274,7 +277,9 @@ ifElse =
 expressions : Test
 expressions =
     describe "Expressions"
-        [ test "Operator in parens" <|
+        [ test "Dotted variable" <|
+            \() -> "A.B.c" |> becomes "A . B . c"
+        , test "Operator in parens" <|
             \() -> "(+)" |> becomes "( + )"
         , test "Operators passed to map" <|
             \() ->
@@ -311,4 +316,3 @@ expressions =
                 "map .a list"
                     |> becomes "map ( fun x => x . a ) list"
         ]
-

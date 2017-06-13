@@ -3,9 +3,14 @@ module Reason exposing (..)
 import Ast.Expression exposing (..)
 import Regex
 import Ast.Statement exposing (..)
+import String.Extra
 
 
 -- TODO: chunks the parser barfs ==> feed through directly or as comment
+
+
+notDone a =
+    "/* ?? " ++ (toString a) ++ " ?? */"
 
 
 bindingSymbol : Expression -> String
@@ -39,10 +44,6 @@ showPair prefix prA prSep suffix ( l, r ) =
     showABPair prefix prA prSep prA suffix ( l, r )
 
 
-
-
-
-
 showABPair : String -> (a -> String) -> (a -> String) -> (b -> String) -> String -> ( a, b ) -> String
 showABPair prefix prA prSep prB suffix ( l, r ) =
     prefix ++ prA l ++ prSep l ++ prB r ++ suffix
@@ -72,18 +73,18 @@ expToReason e =
         String s ->
             "\"" ++ s ++ "\""
 
-        Variable [ v ] ->
+        Variable (h :: t) ->
             let
                 identifier =
                     Regex.regex "[a-zA-Z0-9_]+"
 
                 isIden =
-                    Regex.contains identifier v || v == "()"
+                    Regex.contains identifier h || h == "()"
             in
                 if isIden then
-                    v
+                    showList identity " . " (h::t)
                 else
-                    "( " ++ v ++ " )"
+                    "( " ++ h ++ " )"
 
         Variable _ ->
             errorString e
@@ -176,8 +177,56 @@ expToReason e =
             "( fun x => x . " ++ name ++ " )"
 
 
+typeNameToReason : String -> String
+typeNameToReason s =
+    String.Extra.replaceSlice (String.toLower (String.slice 0 1 s)) 0 1 s
+
+dottedName : List String -> String
+dottedName l = showList identity " . " l
+
+typeVarToReason : Type -> String
+typeVarToReason t =
+    case t of
+        TypeVariable s ->
+            "'" ++ s
+
+        _ ->
+            notDone (toString t)
+
+
 statementToReason : Statement -> String
 statementToReason stmt =
     case stmt of
-    ModuleDeclaration _ _ -> ""
-    _ -> "??"
+        ModuleDeclaration name exports ->
+            notDone (toString stmt)
+
+        ImportStatement dottedList Nothing Nothing -> ""
+
+        ImportStatement dottedList renamed exposeList ->
+            let
+                name = dottedName dottedList
+                localModule = case renamed of
+                    Just n -> "module " ++ n ++ " = " ++ name ++ " ; "
+                    Nothing -> ""
+                exportSet e = case e of
+                    AllExport -> "open " ++ name ++ " ; "
+                    SubsetExport l -> List.map exportSet l |> List.foldr (\ a b -> a ++ b) ""
+                    FunctionExport n -> "let " ++ n ++ " = " ++ name ++ " . " ++ n ++ " ; "
+                    TypeExport n es -> "type " ++ n ++ " = " 
+                    ++ (dottedName (List.append dottedList [n])) ++ " ; " 
+                localNames = case exposeList of
+                    Just es -> exportSet es
+                    Nothing -> ""
+            in
+                localModule ++ localNames
+            
+
+        TypeAliasDeclaration (TypeConstructor [ name ] vars) t2 ->
+            let
+                varList =
+                    showList typeVarToReason " " vars
+            in
+                "type " ++ (typeNameToReason name) ++ varList ++ " = " ++ toString t2
+
+        _ ->
+            notDone (toString stmt)

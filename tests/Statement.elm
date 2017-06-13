@@ -7,43 +7,38 @@ import Ast.Statement exposing (ExportSet(..), Type(..), Statement(..))
 import Expect exposing (..)
 import Test exposing (describe, test, Test)
 import Reason exposing (..)
+import String.Extra
 
 
 becomes : String -> String -> Expectation
 becomes reasonString elmString =
     case parseStatement operators elmString of
         Ok ( _, _, ast ) ->
-            Expect.equal reasonString (ast |> statementToReason |> stringClean)
+            Expect.equal reasonString (ast |> statementToReason |> String.Extra.clean)
 
         _ ->
-            Expect.fail ("failed to parse: \"" ++ i ++ "\" <vs> " ++ toString s)
+            Expect.fail ("failed to parse: \"" ++ elmString)
 
 
-are : List Statement -> String -> Expectation
-are s i =
-    case parse i of
-        Ok ( _, _, r ) ->
-            Expect.equal r s
+-- are : String -> String -> Expectation
+-- are reasonString elmStmtList =
+--     case parse elmStmtList of
+--         Ok ( _, _, r ) ->
+--             Expect.equal r s
 
-        _ ->
-            Expect.fail ("failed to parse: \"" ++ i ++ "\" <vs> " ++ toString s)
+--         _ ->
+--             Expect.fail ("failed to parse: \"" ++ i ++ "\" <vs> " ++ toString s)
 
 
 -- moduleDeclaration : Test
 -- moduleDeclaration =
 --     describe "Module declaration statements"
 --         [ test "simple declaration exposing all" <|
---             \() -> "module A exposing (..)" |> becomes (ModuleDeclaration [ "A" ] AllExport)
+--             \() -> "module A exposing (..)" |> becomes "??"
 --         , test "declaration exposing particular things" <|
 --             \() ->
 --                 "module A exposing (A, b)"
---                     |> is
---                         (ModuleDeclaration [ "A" ] <|
---                             SubsetExport
---                                 [ TypeExport "A" Nothing
---                                 , FunctionExport "b"
---                                 ]
---                         )
+--                     |> becomes "??"
 --         , test "declaration exposing an infix operator" <|
 --             \() ->
 --                 "module A exposing ((?))"
@@ -93,39 +88,28 @@ are s i =
 --                             ]
 --                             AllExport
 --                         )
---         ]
+        -- ]
 
 
--- importStatements : Test
--- importStatements =
---     describe "Import statements"
---         [ test "simple import" <|
---             \() -> "import A" |> becomes (ImportStatement [ "A" ] Nothing Nothing)
---         , test "import as" <|
---             \() -> "import A as B" |> becomes (ImportStatement [ "A" ] (Just "B") Nothing)
---         , test "import exposing all" <|
---             \() ->
---                 "import A exposing (..)"
---                     |> becomes (ImportStatement [ "A" ] Nothing (Just AllExport))
---         , test "import exposing" <|
---             \() ->
---                 "import A exposing (A, b)"
---                     |> is
---                         (ImportStatement [ "A" ] Nothing <|
---                             Just <|
---                                 SubsetExport
---                                     [ TypeExport "A" Nothing
---                                     , FunctionExport "b"
---                                     ]
---                         )
---         , test "import exposing union" <|
---             \() ->
---                 "import A exposing (A(..))"
---                     |> is
---                         (ImportStatement [ "A" ] Nothing <|
---                             Just <|
---                                 SubsetExport [ TypeExport "A" (Just AllExport) ]
---                         )
+importStatements : Test
+importStatements =
+    describe "Import statements"
+        [ test "simple import" <|
+            \() -> "import A" |> becomes ""
+        , test "import as" <|
+            \() -> "import A as B" |> becomes "module B = A ;"
+        , test "import exposing all" <|
+            \() ->
+                "import A exposing (..)"
+                    |> becomes "open A ;"
+        , test "import exposing" <|
+            \() ->
+                "import A exposing (A, b)"
+                    |> becomes "type A = A . A ; let b = A . b ;"
+        , test "import exposing union" <|
+            \() ->
+                "import A exposing (B(..))"
+                    |> becomes "??"
 --         , test "import exposing constructor subset" <|
 --             \() ->
 --                 "import A exposing (A(A))"
@@ -134,19 +118,11 @@ are s i =
 --                             Just <|
 --                                 SubsetExport [ TypeExport "A" (Just <| SubsetExport [ FunctionExport "A" ]) ]
 --                         )
---         , test "import multiline" <|
---             \() ->
---                 "import A as B exposing (A, B,\nc)"
---                     |> is
---                         (ImportStatement [ "A" ] (Just "B") <|
---                             Just <|
---                                 SubsetExport
---                                     [ TypeExport "A" Nothing
---                                     , TypeExport "B" Nothing
---                                     , FunctionExport "c"
---                                     ]
---                         )
---         ]
+        , test "import multiline" <|
+            \() ->
+                "import A as B exposing (A, B,\nc)"
+                    |> becomes "module B = A ; type A = A . A ; type B = A . B ; let c = A . c ;"
+        ]
 
 
 -- typeAnnotations : Test
