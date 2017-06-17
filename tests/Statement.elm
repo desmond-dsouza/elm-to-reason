@@ -100,38 +100,33 @@ importStatements =
             \() -> "import A as B" |> becomes "module B = A ;"
         , test "import exposing all" <|
             \() ->
-                "import A exposing (..)"
-                    |> becomes "open A ;"
+                "import M exposing (..)"
+                    |> becomes "open M ;"
         , test "import exposing" <|
             \() ->
-                "import A exposing (A, b)"
-                    |> becomes "type A = A . A ; let b = A . b ;"
+                "import M exposing (A, b)"
+                    |> becomes "type a = M . a ; let b = M . b ;"
         , test "import exposing union" <|
             \() ->
-                "import A exposing (B(..))"
-                    |> becomes "??"
---         , test "import exposing constructor subset" <|
---             \() ->
---                 "import A exposing (A(A))"
---                     |> is
---                         (ImportStatement [ "A" ] Nothing <|
---                             Just <|
---                                 SubsetExport [ TypeExport "A" (Just <| SubsetExport [ FunctionExport "A" ]) ]
---                         )
+                "import M exposing (B(..))"
+                    |> becomes ("type b = M . b ;" ++ todo "expose 'B' constructors")
+        , test "import exposing constructor subset" <|
+            \() ->
+                "import B exposing (T(C, D))"
+                    |> becomes "type t = B . t ; /* TODO: let C = B . C ; let D = B . D ; */"
         , test "import multiline" <|
             \() ->
                 "import A as B exposing (A, B,\nc)"
-                    |> becomes "module B = A ; type A = A . A ; type B = A . B ; let c = A . c ;"
+                    |> becomes "module B = A ; type a = A . a ; type b = A . b ; let c = A . c ;"
         ]
 
 
--- typeAnnotations : Test
--- typeAnnotations =
---     describe "Type annotations"
---         [ test "constant" <|
---             \() ->
---                 "x : Int"
---                     |> becomes (FunctionTypeDeclaration "x" (TypeConstructor [ "Int" ] []))
+typeAnnotations : Test
+typeAnnotations =
+    describe "Type annotations"
+        [ test "constant" <|
+            \() ->
+                "x : Int" |> becomes "??"
 --         , test "variables" <|
 --             \() ->
 --                 "x : a"
@@ -186,7 +181,7 @@ importStatements =
 --                                 [ (TypeConstructor [ "Msg" ] []) ]
 --                             )
 --                         )
---         ]
+        ]
 
 
 -- portStatements : Test

@@ -82,7 +82,7 @@ expToReason e =
                     Regex.contains identifier h || h == "()"
             in
                 if isIden then
-                    showList identity " . " (h::t)
+                    showList identity " . " (h :: t)
                 else
                     "( " ++ h ++ " )"
 
@@ -181,8 +181,11 @@ typeNameToReason : String -> String
 typeNameToReason s =
     String.Extra.replaceSlice (String.toLower (String.slice 0 1 s)) 0 1 s
 
+
 dottedName : List String -> String
-dottedName l = showList identity " . " l
+dottedName l =
+    showList identity " . " l
+
 
 typeVarToReason : Type -> String
 typeVarToReason t =
@@ -194,32 +197,69 @@ typeVarToReason t =
             notDone (toString t)
 
 
+todo : String -> String
+todo s =
+    " /* TODO: " ++ s ++ " */"
+
+
 statementToReason : Statement -> String
 statementToReason stmt =
     case stmt of
         ModuleDeclaration name exports ->
             notDone (toString stmt)
 
-        ImportStatement dottedList Nothing Nothing -> ""
+        ImportStatement dottedList Nothing Nothing ->
+            ""
 
         ImportStatement dottedList renamed exposeList ->
             let
-                name = dottedName dottedList
-                localModule = case renamed of
-                    Just n -> "module " ++ n ++ " = " ++ name ++ " ; "
-                    Nothing -> ""
-                exportSet e = case e of
-                    AllExport -> "open " ++ name ++ " ; "
-                    SubsetExport l -> List.map exportSet l |> List.foldr (\ a b -> a ++ b) ""
-                    FunctionExport n -> "let " ++ n ++ " = " ++ name ++ " . " ++ n ++ " ; "
-                    TypeExport n es -> "type " ++ n ++ " = " 
-                    ++ (dottedName (List.append dottedList [n])) ++ " ; " 
-                localNames = case exposeList of
-                    Just es -> exportSet es
-                    Nothing -> ""
+                name =
+                    dottedName dottedList
+
+                localModule =
+                    case renamed of
+                        Just n ->
+                            "module " ++ n ++ " = " ++ name ++ " ; "
+
+                        Nothing ->
+                            ""
+
+                exportSet e =
+                    case e of
+                        AllExport ->
+                            "open " ++ name ++ " ; "
+
+                        SubsetExport l ->
+                            List.map exportSet l |> List.foldr (\a b -> a ++ b) ""
+                            
+                        FunctionExport n ->
+                            "let " ++ n ++ " = " ++ name ++ " . " ++ n ++ " ; "
+
+                        TypeExport t es ->
+                            let
+                                exportedConstructors =
+                                    case es of
+                                        Just AllExport ->
+                                            todo ("expose '" ++ t ++ "' constructors")
+
+                                        Just (SubsetExport l) ->
+                                            todo (exportSet (SubsetExport l))
+
+                                        _ ->
+                                            ""
+                                tR = typeNameToReason t
+                            in
+                                "type " ++ tR ++ " = " ++ (dottedName (List.append dottedList [ tR ])) ++ " ; " ++ exportedConstructors
+
+                localNames =
+                    case exposeList of
+                        Just es ->
+                            exportSet es
+
+                        Nothing ->
+                            ""
             in
                 localModule ++ localNames
-            
 
         TypeAliasDeclaration (TypeConstructor [ name ] vars) t2 ->
             let
@@ -228,5 +268,7 @@ statementToReason stmt =
             in
                 "type " ++ (typeNameToReason name) ++ varList ++ " = " ++ toString t2
 
+        FunctionTypeDeclaration name t -> 
+            notDone ("type decl." ++ name)
         _ ->
             notDone (toString stmt)
