@@ -20,6 +20,16 @@ becomes reasonString elmString =
             Expect.fail ("failed to parse: \"" ++ elmString)
 
 
+-- becomes : String -> String -> Expectation
+whenParsed parser reasonString elmString =
+    case parser elmString of
+        Ok ( _, _, ast ) ->
+            Expect.equal reasonString (ast |> statementToReason |> String.Extra.clean)
+
+        _ ->
+            Expect.fail ("failed to parse: \"" ++ elmString)
+
+
 -- are : String -> String -> Expectation
 -- are reasonString elmStmtList =
 --     case parse elmStmtList of
@@ -126,124 +136,53 @@ typeAnnotations =
     describe "Type annotations"
         [ test "constant" <|
             \() ->
-                "x : Int" |> becomes "??"
---         , test "variables" <|
---             \() ->
---                 "x : a"
---                     |> becomes (FunctionTypeDeclaration "x" (TypeVariable "a"))
---         , test "variables with numbers" <|
---             \() ->
---                 "x : a1"
---                     |> becomes (FunctionTypeDeclaration "x" (TypeVariable "a1"))
---         , test "application" <|
---             \() ->
---                 "x : a -> b"
---                     |> is
---                         (FunctionTypeDeclaration "x"
---                             (TypeApplication
---                                 (TypeVariable "a")
---                                 (TypeVariable "b")
---                             )
---                         )
---         , test "application associativity" <|
---             \() ->
---                 "x : a -> b -> c"
---                     |> is
---                         (FunctionTypeDeclaration "x"
---                             (TypeApplication
---                                 (TypeVariable "a")
---                                 (TypeApplication
---                                     (TypeVariable "b")
---                                     (TypeVariable "c")
---                                 )
---                             )
---                         )
---         , test "application parens" <|
---             \() ->
---                 "x : (a -> b) -> c"
---                     |> is
---                         (FunctionTypeDeclaration "x"
---                             (TypeApplication
---                                 (TypeApplication
---                                     (TypeVariable "a")
---                                     (TypeVariable "b")
---                                 )
---                                 (TypeVariable "c")
---                             )
---                         )
---         , test "qualified types" <|
---             \() ->
---                 "m : Html.App Msg"
---                     |> is
---                         (FunctionTypeDeclaration "m"
---                             (TypeConstructor
---                                 [ "Html", "App" ]
---                                 [ (TypeConstructor [ "Msg" ] []) ]
---                             )
---                         )
+                "x : Int" |> becomes "/* INTERNAL ERROR */"
+        , test "variables" <|
+            \() -> "x : a" |> becomes "/* INTERNAL ERROR */"
+        , test "variables with numbers" <|
+            \() -> "x : a1" |> becomes "/* INTERNAL ERROR */"
+        , test "application" <|
+            \() -> "x : a -> b" |> becomes "/* INTERNAL ERROR */"
+        , test "application associativity" <|
+            \() -> "x : a -> b -> c"  |> becomes "/* INTERNAL ERROR */"
+        , test "application parens" <|
+            \() -> "x : (a -> b) -> c"  |> becomes "/* INTERNAL ERROR */"
+        , test "qualified types" <|
+            \() -> "m : Html.App Msg"  |> becomes "/* INTERNAL ERROR */"
         ]
 
 
--- portStatements : Test
--- portStatements =
---     describe "port type declaration"
---         [ test "constant" <|
---             \() ->
---                 "port focus : String -> Cmd msg"
---                     |> is
---                         (PortTypeDeclaration "focus"
---                             (TypeApplication
---                                 (TypeConstructor [ "String" ] [])
---                                 (TypeConstructor [ "Cmd" ]
---                                     ([ TypeVariable "msg" ])
---                                 )
---                             )
---                         )
---         , test "another port type declaration" <|
---             \() ->
---                 "port users : (User -> msg) -> Sub msg"
---                     |> is
---                         (PortTypeDeclaration "users"
---                             (TypeApplication
---                                 (TypeApplication
---                                     (TypeConstructor [ "User" ] [])
---                                     (TypeVariable "msg")
---                                 )
---                                 (TypeConstructor [ "Sub" ]
---                                     ([ TypeVariable "msg" ])
---                                 )
---                             )
---                         )
---         , test "port definition" <|
---             \() ->
---                 "port focus = Cmd.none"
---                     |> is
---                         (PortDeclaration "focus"
---                             []
---                             (Access
---                                 (Variable [ "Cmd" ])
---                                 [ "none" ]
---                             )
---                         )
---         ]
+portStatements : Test
+portStatements =
+    describe "port type declaration"
+        [ test "constant" <|
+            \() ->
+                "port focus : String -> Cmd msg"
+                    |> becomes "/* ?? port declaration: focus ?? */"
+        , test "another port type declaration" <|
+            \() ->
+                "port users : (User -> msg) -> Sub msg"
+                    |> becomes "/* ?? port declaration: users ?? */"
+        , test "port definition" <|
+            \() ->
+                "port focus = Cmd.none"
+                    |> becomes "/* ?? port definition: focus ?? */"
+        ]
 
 
--- infixDeclarations : Test
--- infixDeclarations =
---     describe "Infix declarations"
---         [ test "non" <|
---             \() ->
---                 "infix 9 :-"
---                     |> becomes (InfixDeclaration N 9 ":-")
---         , test "left" <|
---             \() ->
---                 "infixl 9 :-"
---                     |> becomes (InfixDeclaration L 9 ":-")
---         , test "right" <|
---             \() ->
---                 "infixr 9 :-"
---                     |> becomes (InfixDeclaration R 9 ":-")
---         ]
+infixDeclarations : Test
+infixDeclarations =
+    describe "Infix declarations"
+        [ test "non" <|
+            \() ->
+                "infix 9 :-" |> becomes "/* INTERNAL ERROR */"
+        , test "left" <|
+            \() ->
+                "infixl 9 :-"  |> becomes "/* INTERNAL ERROR */"
+        , test "right" <|
+            \() ->
+                "infixr 9 :-"  |> becomes "/* INTERNAL ERROR */"
+        ]
 
 
 -- singleDeclarationInput : String

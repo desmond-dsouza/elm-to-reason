@@ -9,8 +9,9 @@ import String.Extra
 -- TODO: chunks the parser barfs ==> feed through directly or as comment
 
 
-notDone a =
-    "/* ?? " ++ (toString a) ++ " ?? */"
+notDone : String -> String
+notDone s =
+    "/* ?? " ++ s ++ " ?? */"
 
 
 bindingSymbol : Expression -> String
@@ -196,6 +197,8 @@ typeVarToReason t =
         _ ->
             notDone (toString t)
 
+internalError : String -> String
+internalError s = " /* INTERNAL ERROR */ "
 
 todo : String -> String
 todo s =
@@ -269,6 +272,16 @@ statementToReason stmt =
                 "type " ++ (typeNameToReason name) ++ varList ++ " = " ++ toString t2
 
         FunctionTypeDeclaration name t -> 
-            notDone ("type decl." ++ name)
+            internalError ("type decl for " ++ name ++ " must be paired with defn")
+        PortTypeDeclaration name t -> 
+            notDone ("port declaration: " ++ name)
+        PortDeclaration name _ _ -> 
+            notDone ("port definition: " ++ name)
         _ ->
-            notDone (toString stmt)
+            internalError ""
+
+funcDeclDefnPairToReason : Statement -> Statement -> String
+funcDeclDefnPairToReason decl defn =
+    case (decl, defn) of
+        ((FunctionTypeDeclaration f t), (FunctionDeclaration _ args exp)) -> "fPair"
+        _ -> internalError "Not Matched Pair"
